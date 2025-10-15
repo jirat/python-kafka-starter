@@ -24,6 +24,7 @@ def init_database():
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS kafka_messages (
                 id SERIAL PRIMARY KEY,
+                customer_id VARCHAR(255),
                 message TEXT NOT NULL,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
@@ -38,11 +39,12 @@ def init_database():
         conn.close()
 
 
-def save_message_to_db(message):
+def save_message_to_db(customer_id, message):
     """
     Save a Kafka message to the database.
     
     Args:
+        customer_id: Customer ID from the message
         message: Message text to save
     
     Returns:
@@ -53,9 +55,9 @@ def save_message_to_db(message):
     
     try:
         cursor.execute("""
-            INSERT INTO kafka_messages (message)
-            VALUES (%s)
-        """, (message,))
+            INSERT INTO kafka_messages (customer_id, message)
+            VALUES (%s, %s)
+        """, (customer_id, message))
         
         conn.commit()
         return True

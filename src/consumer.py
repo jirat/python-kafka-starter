@@ -1,3 +1,4 @@
+import json
 from confluent_kafka import Consumer
 from .config import KAFKA_BOOTSTRAP_SERVERS, KAFKA_TOPIC, KAFKA_GROUP_ID
 from .database import init_database, save_message_to_db
@@ -38,13 +39,25 @@ def start_consumer():
             key = msg.key().decode() if msg.key() else None
             value = msg.value().decode()
             
-            print(f"💬 Received message: key={key}, value={value}")
-            
-            # Save message to database
-            save_message_to_db(value)
-            
-            # Send message to output topic
-            send_message(producer, value, key=key)
+            # Deserialize JSON message
+            try:
+                data = json.loads(value)
+                customer_id = data.get('customer_id')
+                message_text = data.get('message')
+                
+                print(f"💬 Received message: customer_id={customer_id}, message={message_text}")
+                
+                # Save message to database
+                save_message_to_db(customer_id, message_text)
+                
+                # Send message to output topic
+                send_message(producer, value, key=key)
+                
+            except json.JSONDecodeError as e:
+                print(f"⚠️ Invalid JSON format: {e}")
+                print(f"   Raw message: {value}")
+            except Exception as e:
+                print(f"⚠️ Error processing message: {e}")
 
     except KeyboardInterrupt:
         print("\n🛑 Consumer stopped by user.")
