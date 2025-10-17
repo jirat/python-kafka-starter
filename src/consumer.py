@@ -1,6 +1,6 @@
 import json
 from confluent_kafka import Consumer
-from .config import KAFKA_BOOTSTRAP_SERVERS, KAFKA_TOPIC, KAFKA_GROUP_ID
+from .config import KAFKA_BOOTSTRAP_SERVERS, KAFKA_TOPIC, KAFKA_GROUP_ID, KAFKA_USERNAME, KAFKA_PASSWORD
 from .database import init_database, save_message_to_db
 from .producer import create_producer, send_message
 
@@ -15,7 +15,11 @@ def start_consumer():
     conf = {
         'bootstrap.servers': KAFKA_BOOTSTRAP_SERVERS,  # Kafka broker address
         'group.id': KAFKA_GROUP_ID,                    # Consumer group
-        'auto.offset.reset': 'earliest'                # Start from earliest message
+        'auto.offset.reset': 'earliest',                # Start from earliest message
+        'security.protocol': 'SASL_PLAINTEXT',
+        'sasl.mechanisms': 'PLAIN',
+        'sasl.username': KAFKA_USERNAME,
+        'sasl.password': KAFKA_PASSWORD,
     }
 
     # Step 4: Create the consumer and subscribe to topic

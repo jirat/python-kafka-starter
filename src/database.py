@@ -1,19 +1,28 @@
-import psycopg2
-from psycopg2.extras import RealDictCursor
+# import psycopg2
+# from psycopg2.extras import RealDictCursor
+import pyodbc
 from .config import DB_HOST, DB_PORT, DB_USER, DB_PASSWORD, DB_NAME
 
 
 def get_db_connection():
     """Create and return a database connection."""
-    conn = psycopg2.connect(
-        host=DB_HOST,
-        port=DB_PORT,
-        user=DB_USER,
-        password=DB_PASSWORD,
-        database=DB_NAME
+    # conn = psycopg2.connect(
+    #     host=DB_HOST,
+    #     port=DB_PORT,
+    #     user=DB_USER,
+    #     password=DB_PASSWORD,
+    #     database=DB_NAME
+    # )
+    # return conn
+    conn_str = (
+        f"DRIVER={{ODBC Driver 17 for SQL Server}};"
+        f"SERVER={DB_HOST},{DB_PORT};"
+        f"DATABASE={DB_NAME};"
+        f"UID={DB_USER};"
+        f"PWD={DB_PASSWORD}"
     )
+    conn = pyodbc.connect(conn_str)
     return conn
-
 
 def init_database():
     """Initialize the database table if it doesn't exist."""
@@ -22,12 +31,18 @@ def init_database():
     
     try:
         cursor.execute("""
-            CREATE TABLE IF NOT EXISTS kafka_messages (
-                id SERIAL PRIMARY KEY,
-                customer_id VARCHAR(255),
-                message TEXT NOT NULL,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            IF NOT EXISTS (
+                SELECT * FROM sysobjects 
+                WHERE name = 'kafka_messages' AND xtype = 'U'
             )
+            BEGIN
+                CREATE TABLE kafka_messages (
+                    id INT IDENTITY(1,1) PRIMARY KEY,
+                    customer_id NVARCHAR(255),
+                    message NVARCHAR(MAX) NOT NULL,
+                    created_at DATETIME2 DEFAULT SYSDATETIME()
+                );
+            END
         """)
         conn.commit()
         print("✅ Database table 'kafka_messages' is ready")
@@ -56,7 +71,7 @@ def save_message_to_db(customer_id, message):
     try:
         cursor.execute("""
             INSERT INTO kafka_messages (customer_id, message)
-            VALUES (%s, %s)
+            VALUES (?, ?)
         """, (customer_id, message))
         
         conn.commit()
@@ -87,7 +102,7 @@ def get_all_messages(limit=100):
         cursor.execute("""
             SELECT * FROM kafka_messages 
             ORDER BY created_at DESC 
-            LIMIT %s
+            LIMIT ?
         """, (limit,))
         
         messages = cursor.fetchall()

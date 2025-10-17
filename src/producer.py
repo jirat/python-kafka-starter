@@ -1,11 +1,15 @@
 from confluent_kafka import Producer
-from .config import KAFKA_BOOTSTRAP_SERVERS, KAFKA_TOPIC_OUT
+from .config import KAFKA_BOOTSTRAP_SERVERS, KAFKA_TOPIC_OUT, KAFKA_USERNAME, KAFKA_PASSWORD
 
 
 def create_producer():
     """Create and return a Kafka producer instance."""
     conf = {
-        'bootstrap.servers': KAFKA_BOOTSTRAP_SERVERS
+        'bootstrap.servers': KAFKA_BOOTSTRAP_SERVERS,
+        'security.protocol': 'SASL_PLAINTEXT',
+        'sasl.mechanisms': 'PLAIN',
+        'sasl.username': KAFKA_USERNAME,
+        'sasl.password': KAFKA_PASSWORD,
     }
     return Producer(conf)
 
